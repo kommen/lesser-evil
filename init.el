@@ -195,6 +195,10 @@
                   (clj-ns-name-rename-clj-buffer-to-namespace*)
                   result))))
 ;; (clj-ns-name-uninstall)
+(use-package evil-escape
+  :after (evil)
+  :straight t
+  :config (evil-escape-mode))
 
 (use-package dumb-jump :straight t)
 
