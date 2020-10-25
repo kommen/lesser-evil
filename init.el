@@ -202,6 +202,10 @@
 
 (use-package dumb-jump :straight t)
 
+(use-package dracula-theme
+  :straight t
+  :config (load-theme 'dracula t))
+
 (server-start)
 (set-frame-font "Iosevka Fixed SS14-14")
 (global-linum-mode 1)
