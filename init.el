@@ -214,8 +214,8 @@
   :straight t)
 
 (server-start)
-(global-linum-mode 1)
 (set-frame-font "JetBrains Mono")
+(global-linum-mode 0)
 
 (add-hook 'before-save-hook
           (lambda ()
