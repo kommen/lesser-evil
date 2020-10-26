@@ -227,6 +227,9 @@
 
 (setq vc-follow-symlinks t)
 
+(define-key ivy-minibuffer-map (kbd "C-j") #'ivy-next-line)
+(define-key ivy-minibuffer-map (kbd "C-k") #'ivy-previous-line)
+
 ;; Patches
 
 ;; Modified version, if no REPL of the right type is found then switch to any
