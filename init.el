@@ -206,6 +206,13 @@
   :straight t
   :config (load-theme 'dracula t))
 
+(use-package magit
+  :straight t)
+
+(use-package evil-magit
+  :after (magit)
+  :straight t)
+
 (server-start)
 (set-frame-font "Iosevka Fixed SS14-14")
 (global-linum-mode 1)
