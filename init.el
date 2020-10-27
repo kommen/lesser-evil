@@ -1,32 +1,42 @@
 (add-to-list #'load-path (expand-file-name "init.d" user-emacs-directory))
 
+(require 'straight-init)
 (require 'better-defaults)
 (require 'lesser-evil-commands)
 (require 'better-emacs-lisp)
 
+(setq straight-profiles '((lesser-evil . "lesser-evil.el")
+                          (lesser-evil-user . "lesser-evil-user.el")))
+
+(setq straight-current-profile 'lesser-evil)
+
 (straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
 
 (use-package ivy
-  :straight t
   :defer 0.1
   :diminish
-  :config (ivy-mode))
+  :config
+  (ivy-mode)
+  (define-key ivy-minibuffer-map (kbd "C-j") #'ivy-next-line)
+  (define-key ivy-minibuffer-map (kbd "C-k") #'ivy-previous-line))
 
 (use-package counsel
-  :straight t
   :after (ivy)
-  ;;:config (counsel-mode)
-  )
+  :config
+  ;; This ensures that SPC f r (counsel-recentf, show recently opened files)
+  ;; actually works
+  (recentf-mode 1))
+
+;; Make counsel-M-x show most recently used commands first
+(use-package smex)
 
 (use-package swiper
-  :straight t
-  :after ivy)
+  :after (ivy))
 
-(use-package undo-fu
-  :straight t)
+(use-package undo-fu)
 
 (use-package evil
-  :straight t
   :init (setq evil-want-keybinding nil)
   :config
   (evil-mode t)
@@ -39,44 +49,39 @@
         evil-mode-line-format 'before
         evil-normal-state-cursor '(box "orange")
         evil-insert-state-cursor '(box "green")
-        evil-visual-state-cursor '(box "#F86155")))
+        evil-visual-state-cursor '(box "#F86155"))
+
+  (define-key evil-motion-state-map (kbd "TAB") #'indent-for-tab-command))
 
 (use-package evil-collection
-  :straight t
   :after (evil)
   :config (evil-collection-init))
 
 (use-package evil-surround
-  :straight t
   :config (global-evil-surround-mode 1))
 
 ;; Enable copy-paste to/from x clipboard when running in a terminal
 (use-package xclip
-  :straight t
   :config (xclip-mode t))
 
 (use-package seq)
 (use-package cl-lib)
 
 (use-package which-key
-  :straight t
   :after (evil-leader seq cl-lib)
   :config
   (which-key-mode t))
 
 (use-package winum
-  :straight t
   :config (winum-mode t))
 
 ;;; Lisp setup
 
 (use-package clojure-mode
-  :straight t
   :config
   (setq clojure-toplevel-inside-comment-form t))
 
 (use-package cider
-  :straight t
   :after (clojure-mode)
   :config
   (setq nrepl-log-messages t) ;; make sure we can always debug nrepl issues
@@ -86,7 +91,6 @@
   (set-register ?g "(user/go)"))
 
 (use-package clj-refactor
-  :straight t
   :after (cider)
   :config
   (setq cljr-cljc-clojure-test-declaration "[clojure.test :refer [deftest testing is are use-fixtures run-tests join-fixtures]]"
@@ -101,7 +105,6 @@
   (add-hook 'clojure-mode-hook 'clj-refactor-mode))
 
 (use-package smartparens
-  :straight t
   :init
   (require 'smartparens-config)
   (add-hook 'cider-clojure-interaction-mode-hook 'smartparens-mode)
@@ -114,16 +117,22 @@
   (add-hook 'lisp-data-mode-hook 'smartparens-mode))
 
 (use-package evil-cleverparens
-  :straight t
   ;; disabling these initial bindings because it changes M-d (kill-word) to
   ;; evil-cp-delete-sexp, and I happen to use M-d a lot. Might want to review
   ;; cause some of these seem useful.
   :init (setq evil-cleverparens-use-additional-bindings nil)
+  :config
+  ;; evil-cp-regular-bindings contain various overrides of fundamental vim/evil
+  ;; commands like x Y P C D etc. This seems a little too clever IMO. e.g. x
+  ;; deletes a char or splices when on a delimiter, well we have ds( for that.
+  ;; In particular I need to be able to delete a single parenthesis sometimes to
+  ;; fix up a mess, and this really gets in the way. I may undefine more of
+  ;; these in the future.
+  (setq evil-cp-regular-bindings (delq (assoc "x" evil-cp-regular-bindings) evil-cp-regular-bindings))
   :after (evil clojure-mode smartparens)
   :hook (smartparens-mode . evil-cleverparens-mode))
 
 (use-package aggressive-indent
-  :straight t
   :init
   (add-hook 'cider-clojure-interaction-mode-hook 'aggressive-indent-mode)
   (add-hook 'clojurex-mode-hook 'aggressive-indent-mode)
@@ -134,7 +143,6 @@
   (add-hook 'lisp-data-mode-hook 'aggressive-indent-mode))
 
 (use-package company
-  :straight t
   :init
   (add-hook 'cider-clojure-interaction-mode-hook 'company-mode)
   (add-hook 'cider-repl-mode-hook 'company-mode)
@@ -145,24 +153,15 @@
   (add-hook 'emacs-lisp-mode-hook 'company-mode))
 
 (use-package projectile
-  :straight t
   :config (projectile-global-mode))
 
 (use-package counsel-projectile
-  :straight t
   :after (projectile))
 
 (use-package elisp-slime-nav
-  :straight t
   :config
   (add-hook 'emacs-lisp-mode-hook 'turn-on-elisp-slime-nav-mode)
   (add-hook 'ielm-mode-hook 'turn-on-elisp-slime-nav-mode))
-
-;; (use-package evil-multi-leader
-;;   :after (evil which-key)
-;;   :config
-;;   (global-multi-leader-mode 1)
-;;   )
 
 (use-package pprint-to-buffer
   :straight (pprint-to-buffer
@@ -194,43 +193,32 @@
                 (let ((result (funcall cider-find-file-fn url)))
                   (clj-ns-name-rename-clj-buffer-to-namespace*)
                   result))))
+;; Occasionally clj-ns-name will error when trying to parse an ns form. This
+;; needs fixing, but meanwhile you can disable it manually if necessary (this is
+;; fairly rare)
 ;; (clj-ns-name-uninstall)
 (use-package evil-escape
   :after (evil)
   :straight t
   :config (evil-escape-mode))
 
-(use-package dumb-jump :straight t)
+;; Not hooked up yet, but a good fallback for cases where smarter jumping is not
+;; available
+(use-package dumb-jump)
 
-(use-package goto-last-change :straight t)
+(use-package goto-last-change)
 
-(use-package dracula-theme
-  :straight t
-  :config (load-theme 'dracula t))
-
-(use-package magit
-  :straight t)
+(use-package magit)
 
 (use-package evil-magit
-  :after (magit)
-  :straight t)
+  :after (magit))
 
-(server-start)
-(set-frame-font "JetBrains Mono")
-(global-linum-mode 0)
+(use-package org)
 
-(add-hook 'before-save-hook
-          (lambda ()
-            (when (derived-mode-p 'prog-mode)
-              (delete-trailing-whitespace))))
+(use-package markdown-mode)
 
 (require 'evil-multi-leader)
 (global-multi-leader-mode 1)
-
-(setq vc-follow-symlinks t)
-
-(define-key ivy-minibuffer-map (kbd "C-j") #'ivy-next-line)
-(define-key ivy-minibuffer-map (kbd "C-k") #'ivy-previous-line)
 
 ;; Patches
 
@@ -242,3 +230,14 @@
   (cider--switch-to-repl-buffer
    (or (cider-current-repl nil) (cider-current-repl 'any 'ensure))
    set-namespace))
+
+(defadvice cider-find-var (before add-evil-jump activate)
+  (evil-set-jump))
+
+;; User config
+
+(setq straight-current-profile 'lesser-evil-user)
+
+(let ((user-config (expand-file-name "lesser-evil-user-config.el" user-emacs-directory)))
+  (when (file-exists-p user-config)
+    (load user-config)))
